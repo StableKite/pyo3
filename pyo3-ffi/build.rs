@@ -18,7 +18,7 @@ const SUPPORTED_VERSIONS_CPYTHON: SupportedVersions = SupportedVersions {
     min: PythonVersion { major: 3, minor: 7 },
     max: PythonVersion {
         major: 3,
-        minor: 14,
+        minor: 15,
     },
 };
 
@@ -27,7 +27,10 @@ const SUPPORTED_VERSIONS_PYPY: SupportedVersions = SupportedVersions {
         major: 3,
         minor: 11,
     },
-    max: SUPPORTED_VERSIONS_CPYTHON.max,
+    max: PythonVersion {
+        major: 3,
+        minor: 14,
+    },
 };
 
 const SUPPORTED_VERSIONS_GRAALPY: SupportedVersions = SupportedVersions {
@@ -35,7 +38,10 @@ const SUPPORTED_VERSIONS_GRAALPY: SupportedVersions = SupportedVersions {
         major: 3,
         minor: 10,
     },
-    max: SUPPORTED_VERSIONS_CPYTHON.max,
+    max: PythonVersion {
+        major: 3,
+        minor: 14,
+    },
 };
 
 fn ensure_python_version(interpreter_config: &InterpreterConfig) -> Result<()> {
