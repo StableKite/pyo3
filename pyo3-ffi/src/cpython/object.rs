@@ -282,6 +282,8 @@ pub struct PyTypeObject {
     pub tp_next: *mut PyTypeObject,
     #[cfg(Py_3_13)]
     pub tp_versions_used: u16,
+    #[cfg(Py_3_15)]
+    pub _tp_iteritem: Option<object::_Py_iteritemfunc>,
 }
 
 #[cfg(Py_3_11)]
