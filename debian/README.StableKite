@@ -1,0 +1,25 @@
+Final CPython 3.15 ABI backport
+=============================
+
+The complete upstream test work is on the rolling branch
+https://github.com/StableKite/pyo3/tree/codex/python315-abi-028
+based on official v0.28.2. Source fixes are backports of upstream PRs 5873,
+5918 and the type-layout portion of 6014; no duplicate upstream PR is needed.
+
+With PYO3_PYTHON pointing at an actual final free-threaded CPython and
+RUSTFLAGS='-D warnings', run from that complete source tree:
+
+  cargo run --manifest-path pyo3-ffi-check/Cargo.toml
+  cargo test -p pyo3-ffi
+  cargo test -p pyo3 --no-default-features --features auto-initialize,macros --no-fail-fast
+
+Verified 2026-11-12 on Ubuntu Stonking amd64, CPython 3.15.2t, Rust 1.97.1:
+all ABI structure sizes/field offsets and 22 FFI tests plus 2 FFI doctests pass.
+Runtime/doc suite: 1685 passed, 76 upstream ignores. Its single diagnostic-
+snapshot target fails on 20 snapshots with this newer Rust, IDENTICALLY on
+unmodified v0.28.2. No snapshot, assertion or selector was changed. The
+compile-error result is disclosed rather than counted as a passing full suite.
+No unsafe version-check or ABI3 forward-compatibility environment flags.
+
+The packaged src/ and build.rs after quilt application are byte-identical to
+the tested upstream feature branch. ARM64 and board acceptance remain separate.

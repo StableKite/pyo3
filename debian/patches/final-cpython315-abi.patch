@@ -1,0 +1,106 @@
+Description: Backport final CPython 3.15 structure layouts
+Author: Robolightning <irobolightning@gmail.com>
+Origin: backport, https://github.com/StableKite/pyo3/tree/codex/python315-abi-028
+Bug: https://github.com/PyO3/pyo3/pull/5873
+Bug: https://github.com/PyO3/pyo3/pull/5918
+Bug: https://github.com/PyO3/pyo3/pull/6014
+Forwarded: not-needed
+Last-Update: 2026-11-12
+ .
+ Backport the upstream PyConfig and PyTypeObject layouts without the unrelated
+ new slot API. Enable CPython 3.15 after the full ffi-check against final 3.15.2t
+ headers and native tests; retain the old PyPy/GraalPy maximum versions.
+
+diff --git a/build.rs b/build.rs
+index 2b2acb9e..d1bcbf4c 100644
+--- a/build.rs
++++ b/build.rs
+@@ -18,7 +18,7 @@ const SUPPORTED_VERSIONS_CPYTHON: SupportedVersions = SupportedVersions {
+     min: PythonVersion { major: 3, minor: 7 },
+     max: PythonVersion {
+         major: 3,
+-        minor: 14,
++        minor: 15,
+     },
+ };
+ 
+@@ -27,7 +27,10 @@ const SUPPORTED_VERSIONS_PYPY: SupportedVersions = SupportedVersions {
+         major: 3,
+         minor: 11,
+     },
+-    max: SUPPORTED_VERSIONS_CPYTHON.max,
++    max: PythonVersion {
++        major: 3,
++        minor: 14,
++    },
+ };
+ 
+ const SUPPORTED_VERSIONS_GRAALPY: SupportedVersions = SupportedVersions {
+@@ -35,7 +38,10 @@ const SUPPORTED_VERSIONS_GRAALPY: SupportedVersions = SupportedVersions {
+         major: 3,
+         minor: 10,
+     },
+-    max: SUPPORTED_VERSIONS_CPYTHON.max,
++    max: PythonVersion {
++        major: 3,
++        minor: 14,
++    },
+ };
+ 
+ fn ensure_python_version(interpreter_config: &InterpreterConfig) -> Result<()> {
+diff --git a/src/cpython/initconfig.rs b/src/cpython/initconfig.rs
+index 6b0ae2e5..cd7fc150 100644
+--- a/src/cpython/initconfig.rs
++++ b/src/cpython/initconfig.rs
+@@ -105,6 +105,8 @@ pub struct PyConfig {
+     #[cfg(Py_3_11)]
+     pub dump_refs_file: *mut wchar_t,
+     pub malloc_stats: c_int,
++    #[cfg(Py_3_15)]
++    pub pymalloc_hugepages: c_int,
+     pub filesystem_encoding: *mut wchar_t,
+     pub filesystem_errors: *mut wchar_t,
+     pub pycache_prefix: *mut wchar_t,
+@@ -155,6 +157,8 @@ pub struct PyConfig {
+     pub enable_gil: c_int,
+     #[cfg(all(Py_3_14, Py_GIL_DISABLED))]
+     pub tlbc_enabled: c_int,
++    #[cfg(Py_3_15)]
++    pub lazy_imports: c_int,
+     pub pathconfig_warnings: c_int,
+     #[cfg(Py_3_10)]
+     pub program_name: *mut wchar_t,
+diff --git a/src/cpython/object.rs b/src/cpython/object.rs
+index 9230a1f6..cdcb90ff 100644
+--- a/src/cpython/object.rs
++++ b/src/cpython/object.rs
+@@ -280,6 +280,10 @@ pub struct PyTypeObject {
+     pub tp_prev: *mut PyTypeObject,
+     #[cfg(py_sys_config = "COUNT_ALLOCS")]
+     pub tp_next: *mut PyTypeObject,
++    #[cfg(Py_3_13)]
++    pub tp_versions_used: u16,
++    #[cfg(Py_3_15)]
++    pub _tp_iteritem: Option<object::_Py_iteritemfunc>,
+ }
+ 
+ #[cfg(Py_3_11)]
+diff --git a/src/object.rs b/src/object.rs
+index ddeabb9b..cefd2234 100644
+--- a/src/object.rs
++++ b/src/object.rs
+@@ -280,6 +280,14 @@ pub type hashfunc = unsafe extern "C" fn(*mut PyObject) -> Py_hash_t;
+ pub type richcmpfunc = unsafe extern "C" fn(*mut PyObject, *mut PyObject, c_int) -> *mut PyObject;
+ pub type getiterfunc = unsafe extern "C" fn(*mut PyObject) -> *mut PyObject;
+ pub type iternextfunc = unsafe extern "C" fn(*mut PyObject) -> *mut PyObject;
++#[cfg(Py_3_15)]
++#[repr(C)]
++pub struct _PyObjectIndexPair {
++    pub object: *mut PyObject,
++    pub index: Py_ssize_t,
++}
++#[cfg(Py_3_15)]
++pub type _Py_iteritemfunc = unsafe extern "C" fn(*mut PyObject, Py_ssize_t) -> _PyObjectIndexPair;
+ pub type descrgetfunc =
+     unsafe extern "C" fn(*mut PyObject, *mut PyObject, *mut PyObject) -> *mut PyObject;
+ pub type descrsetfunc = unsafe extern "C" fn(*mut PyObject, *mut PyObject, *mut PyObject) -> c_int;
