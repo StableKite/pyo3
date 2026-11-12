@@ -46,6 +46,11 @@ fn main() {
 
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
+        // This checker compares Python ABI structures, not unrelated libc
+        // records. Keep their referenced types through bindgen's recursive
+        // allowlist. Include Python's legacy non-Py-prefixed records too.
+        .allowlist_type("_?Py.*|_frozen|_inittab")
+        .allowlist_var("PY_VERSION")
         .clang_args(clang_args)
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .parse_callbacks(Box::new(ParseCallbacks))
